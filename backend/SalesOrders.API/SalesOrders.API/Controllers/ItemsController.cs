@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SalesOrders.API.Data;
-using SalesOrders.API.Models;
+using Microsoft.AspNetCore.Mvc;
+using SalesOrders.API.Application.DTOs;
+using SalesOrders.API.Application.Interfaces;
 
 namespace SalesOrders.API.Controllers
 {
@@ -9,17 +8,26 @@ namespace SalesOrders.API.Controllers
     [Route("api/[controller]")]
     public class ItemsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IItemRepository _itemRepository;
 
-        public ItemsController(AppDbContext context)
+        public ItemsController(IItemRepository itemRepository)
         {
-            _context = context;
+            _itemRepository = itemRepository;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Item>>> GetItems()
+        public async Task<ActionResult<IEnumerable<ItemDto>>> GetItems()
         {
-            return await _context.Items.ToListAsync();
+            var items = await _itemRepository.GetAllAsync();
+            var itemDtos = items.Select(i => new ItemDto
+            {
+                Id = i.Id,
+                Code = i.ItemCode,
+                Description = i.Description,
+                Price = i.Price
+            });
+
+            return Ok(itemDtos);
         }
     }
 }

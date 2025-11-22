@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using SalesOrders.API.Data;
+using SalesOrders.API.Infrastructure.Data;
+using SalesOrders.API.Application.Interfaces;
+using SalesOrders.API.Application.Services;
+using SalesOrders.API.Infrastructure.Repositories;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +20,14 @@ builder.Services.AddSwaggerGen();
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register Repositories (Data Access Layer)
+builder.Services.AddScoped<IClientRepository, ClientRepository>();
+builder.Services.AddScoped<IItemRepository, ItemRepository>();
+builder.Services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+
+// Register Services (Business Logic Layer)
+builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
 
 // CORS (allow React dev server)
 builder.Services.AddCors(options =>

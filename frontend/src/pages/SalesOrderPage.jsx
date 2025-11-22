@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import api from "../services/apiClient";
+import { useDispatch } from "react-redux";
+import { useClients } from "../hooks/useClients";
+import { useItems } from "../hooks/useItems";
+import { useOrder } from "../hooks/useOrders";
+import { createOrder, updateOrder } from "../redux/slices/ordersSlice";
+import { calculateLineAmounts, validateOrder } from "../utils/helpers";
 
 function SalesOrderPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const isEditing = !!id;
 
-  const [clients, setClients] = useState([]);
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { clients, loading: clientsLoading } = useClients();
+  const { items, loading: itemsLoading } = useItems();
+  const { order: existingOrder, loading: orderLoading } = useOrder(id);
+  
   const [saving, setSaving] = useState(false);
 
   const [order, setOrder] = useState({
@@ -40,59 +47,36 @@ function SalesOrderPage() {
     ],
   });
 
+  // Load existing order data when editing
   useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      
-      const [clientsRes, itemsRes] = await Promise.all([
-        api.get("/api/clients"),
-        api.get("/api/items"),
-      ]);
-      
-      setClients(clientsRes.data);
-      setItems(itemsRes.data);
-
-      if (id) {
-        const orderRes = await api.get(`/api/orders/${id}`);
-        const backendOrder = orderRes.data;
-        
-        setOrder({
-          id: backendOrder.id || backendOrder.Id,
-          clientId: backendOrder.clientId || backendOrder.ClientId,
-          invoiceNo: backendOrder.invoiceNo || backendOrder.InvoiceNo,
-          invoiceDate: (backendOrder.invoiceDate || backendOrder.InvoiceDate)?.substring(0, 10) || "",
-          referenceNo: (backendOrder.referenceNo || backendOrder.ReferenceNo) || "",
-          note: (backendOrder.note || backendOrder.Note) || "",
-          address1: (backendOrder.address1 || backendOrder.Address1) || "",
-          address2: (backendOrder.address2 || backendOrder.Address2) || "",
-          address3: (backendOrder.address3 || backendOrder.Address3) || "",
-          suburb: (backendOrder.suburb || backendOrder.Suburb) || "",
-          state: (backendOrder.state || backendOrder.State) || "",
-          postCode: (backendOrder.postCode || backendOrder.PostCode) || "",
-          lines: (backendOrder.lines || backendOrder.Lines)?.map(line => ({
-            id: line.id || line.Id,
-            itemId: line.itemId || line.ItemId,
-            note: (line.note || line.Note) || "",
-            quantity: line.quantity || line.Quantity,
-            price: line.price || line.Price,
-            taxRate: line.taxRate || line.TaxRate,
-            exclAmount: line.exclAmount || line.ExclAmount,
-            taxAmount: line.taxAmount || line.TaxAmount,
-            inclAmount: line.inclAmount || line.InclAmount
-          })) || []
-        });
-      }
-    } catch (err) {
-      console.error("Failed to load data:", err);
-      alert("Failed to load data. Please check your API connection.");
-    } finally {
-      setLoading(false);
+    if (existingOrder && isEditing) {
+      setOrder({
+        id: existingOrder.id || existingOrder.Id,
+        clientId: existingOrder.clientId || existingOrder.ClientId,
+        invoiceNo: existingOrder.invoiceNo || existingOrder.InvoiceNo,
+        invoiceDate: (existingOrder.invoiceDate || existingOrder.InvoiceDate)?.substring(0, 10) || "",
+        referenceNo: (existingOrder.referenceNo || existingOrder.ReferenceNo) || "",
+        note: (existingOrder.note || existingOrder.Note) || "",
+        address1: (existingOrder.address1 || existingOrder.Address1) || "",
+        address2: (existingOrder.address2 || existingOrder.Address2) || "",
+        address3: (existingOrder.address3 || existingOrder.Address3) || "",
+        suburb: (existingOrder.suburb || existingOrder.Suburb) || "",
+        state: (existingOrder.state || existingOrder.State) || "",
+        postCode: (existingOrder.postCode || existingOrder.PostCode) || "",
+        lines: (existingOrder.lines || existingOrder.Lines)?.map(line => ({
+          id: line.id || line.Id,
+          itemId: line.itemId || line.ItemId,
+          note: (line.note || line.Note) || "",
+          quantity: line.quantity || line.Quantity,
+          price: line.price || line.Price,
+          taxRate: line.taxRate || line.TaxRate,
+          exclAmount: line.exclAmount || line.ExclAmount,
+          taxAmount: line.taxAmount || line.TaxAmount,
+          inclAmount: line.inclAmount || line.InclAmount
+        })) || []
+      });
     }
-  };
+  }, [existingOrder, isEditing]);
 
   const handleClientChange = (e) => {
     const clientId = parseInt(e.target.value);
@@ -123,17 +107,11 @@ function SalesOrderPage() {
         }
       }
 
-      const qty = parseFloat(line.quantity) || 0;
-      const price = parseFloat(line.price) || 0;
-      const taxRate = parseFloat(line.taxRate) || 0;
-
-      const excl = qty * price;
-      const taxAmount = excl * (taxRate / 100);
-      const incl = excl + taxAmount;
-
-      line.exclAmount = parseFloat(excl.toFixed(2));
-      line.taxAmount = parseFloat(taxAmount.toFixed(2));
-      line.inclAmount = parseFloat(incl.toFixed(2));
+      // Use utility function for amount calculations
+      const amounts = calculateLineAmounts(line.quantity, line.price, line.taxRate);
+      line.exclAmount = amounts.exclAmount;
+      line.taxAmount = amounts.taxAmount;
+      line.inclAmount = amounts.inclAmount;
 
       lines[index] = line;
       return { ...o, lines };
@@ -172,16 +150,10 @@ function SalesOrderPage() {
   };
 
   const saveOrder = async () => {
-    if (!order.clientId) {
-      alert("Please select a customer");
-      return;
-    }
-    if (!order.invoiceNo) {
-      alert("Please enter an invoice number");
-      return;
-    }
-    if (order.lines.length === 0 || !order.lines[0].itemId) {
-      alert("Please add at least one item");
+    // Validate order using utility function
+    const errors = validateOrder(order);
+    if (errors.length > 0) {
+      alert(errors.join('\n'));
       return;
     }
 
@@ -219,10 +191,11 @@ function SalesOrderPage() {
       
       console.log("Sending order data:", JSON.stringify(backendOrder, null, 2));
       
+      // Use Redux actions instead of direct API calls
       if (isEditing) {
-        await api.put(`/api/orders/${id}`, backendOrder);
+        await dispatch(updateOrder({ id, orderData: backendOrder })).unwrap();
       } else {
-        await api.post("/api/orders", backendOrder);
+        await dispatch(createOrder(backendOrder)).unwrap();
       }
       
       alert("Order saved successfully!");
@@ -245,13 +218,14 @@ function SalesOrderPage() {
           alert("Failed to save order. Please check the console for details.");
         }
       } else {
-        alert("Failed to save order. Please check your connection.");
+        alert(err.message || "Failed to save order. Please check your connection.");
       }
     } finally {
       setSaving(false);
     }
   };
 
+  // Calculate totals using utility function
   const totals = order.lines.reduce(
     (acc, l) => {
       acc.excl += l.exclAmount || 0;
@@ -261,6 +235,8 @@ function SalesOrderPage() {
     },
     { excl: 0, tax: 0, incl: 0 }
   );
+
+  const loading = clientsLoading || itemsLoading || (isEditing && orderLoading);
 
   if (loading) {
     return (
@@ -274,15 +250,15 @@ function SalesOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 px-1 py-1">
+      <div className="w-full">
         <div className="bg-white border border-gray-300 rounded shadow-sm">
           {/* Header */}
-          <div className="border-b border-gray-300 bg-gray-100 px-4 py-3">
+          <div className="border-b border-gray-300 bg-gray-100 px-3 py-2">
             <h1 className="text-xl font-semibold text-gray-800">Sales Order</h1>
           </div>
           
-          <div className="p-6">
+          <div className="p-3">
             {/* Save Button */}
             <div className="mb-6">
               <button
@@ -296,11 +272,11 @@ function SalesOrderPage() {
             </div>
 
             {/* Customer and Invoice Info - Two Columns */}
-            <div className="grid grid-cols-2 gap-8 mb-6">
+            <div className="grid grid-cols-2 gap-6 mb-6">
               {/* Left Column - Customer & Address */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Customer Name
                   </label>
                   <select
@@ -318,7 +294,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Address 1
                   </label>
                   <input
@@ -330,7 +306,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Address 2
                   </label>
                   <input
@@ -342,7 +318,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Address 3
                   </label>
                   <input
@@ -354,7 +330,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Suburb
                   </label>
                   <input
@@ -366,7 +342,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     State
                   </label>
                   <input
@@ -378,7 +354,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Post Code
                   </label>
                   <input
@@ -391,9 +367,9 @@ function SalesOrderPage() {
               </div>
 
               {/* Right Column - Invoice Info */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Invoice No
                   </label>
                   <input
@@ -405,7 +381,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Invoice Date
                   </label>
                   <input
@@ -417,7 +393,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Reference no
                   </label>
                   <input
@@ -429,7 +405,7 @@ function SalesOrderPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                     Note
                   </label>
                   <textarea

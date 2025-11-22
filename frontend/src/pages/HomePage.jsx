@@ -1,47 +1,13 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../services/apiClient";
+import { useOrders } from "../hooks/useOrders";
+import { formatCurrency, formatDate } from "../utils/helpers";
 
 function HomePage() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { orders, loading, error } = useOrders();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    loadOrders();
-  }, []);
-
-  const loadOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get("/api/orders");
-      setOrders(response.data);
-    } catch (err) {
-      console.error("Failed to load orders:", err);
-      alert("Failed to load orders. Please check your API connection.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRowDoubleClick = (orderId) => {
     navigate(`/orders/${orderId}`);
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount || 0);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   if (loading) {
@@ -55,9 +21,25 @@ function HomePage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold">Error: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-2">
+      <div className="w-full">
         <div className="bg-white border border-gray-300 rounded shadow-sm">
           {/* Header */}
           <div className="border-b border-gray-300 bg-gray-100 px-4 py-3 flex items-center justify-between">
