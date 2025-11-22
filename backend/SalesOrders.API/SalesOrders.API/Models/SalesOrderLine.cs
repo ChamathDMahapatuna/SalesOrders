@@ -5,10 +5,10 @@
         public int Id { get; set; }       // PK
 
         public int SalesOrderId { get; set; }
-        public SalesOrder SalesOrder { get; set; } = null!;
+        public SalesOrder? SalesOrder { get; set; }
 
         public int ItemId { get; set; }
-        public Item Item { get; set; } = null!;
+        public Item? Item { get; set; }
 
         public string? Note { get; set; }
         public decimal Quantity { get; set; }

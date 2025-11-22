@@ -12,7 +12,15 @@ namespace SalesOrders.API.Models
         public string? Note { get; set; }
 
         public int ClientId { get; set; }
-        public Client Client { get; set; } = null!;
+        public Client? Client { get; set; }
+
+        // Customer address at time of order (snapshot)
+        public string? Address1 { get; set; }
+        public string? Address2 { get; set; }
+        public string? Address3 { get; set; }
+        public string? Suburb { get; set; }
+        public string? State { get; set; }
+        public string? PostCode { get; set; }
 
         public decimal TotalExcl { get; set; }
         public decimal TotalTax { get; set; }

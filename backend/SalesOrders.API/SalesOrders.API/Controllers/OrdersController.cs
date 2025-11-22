@@ -31,7 +31,9 @@ namespace SalesOrders.API.Controllers
                 invoiceNo = o.InvoiceNo,
                 invoiceDate = o.InvoiceDate.ToString("yyyy-MM-dd"),
                 clientName = o.Client.Name,
-                totalIncl = o.TotalIncl
+                totalIncl = o.TotalIncl,
+                referenceNo = o.ReferenceNo,
+                note = o.Note
             });
 
             return Ok(result);
