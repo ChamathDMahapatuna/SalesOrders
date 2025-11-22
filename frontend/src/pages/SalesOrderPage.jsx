@@ -250,9 +250,9 @@ function SalesOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-1 py-1">
+    <div className="min-h-screen bg-gray-50">
       <div className="w-full">
-        <div className="bg-white border border-gray-300 rounded shadow-sm">
+        <div className="bg-white border border-gray-300 shadow-sm">
           {/* Header */}
           <div className="border-b border-gray-300 bg-gray-100 px-3 py-2">
             <h1 className="text-xl font-semibold text-gray-800">Sales Order</h1>
@@ -419,20 +419,20 @@ function SalesOrderPage() {
             </div>
 
             {/* Line Items Table */}
-            <div className="mb-6 overflow-x-auto">
+            <div className="mb-6">
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Item Code</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Description</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Note</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Quantity</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Price</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Tax</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Excl Amount</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Tax Amount</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Incl Amount</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">Action</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '10%'}}>Item Code</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '15%'}}>Description</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '12%'}}>Note</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '8%'}}>Quantity</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '10%'}}>Price</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '8%'}}>Tax</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '11%'}}>Excl Amount</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '11%'}}>Tax Amount</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '11%'}}>Incl Amount</th>
+                    <th className="border border-gray-300 px-2 py-2 text-left text-sm font-medium text-gray-700" style={{width: '4%'}}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
