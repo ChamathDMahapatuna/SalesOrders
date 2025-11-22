@@ -1,7 +1,7 @@
 # Sales Orders Management System
 
-A full-stack sales order management application built with React and .NET Core.
-
+A full-stack sales order management application built with React and .NET Core. 
+                                ~ Chamath Mahapatuna ~
 ## 🚀 Features
 
 - Create and manage sales orders
